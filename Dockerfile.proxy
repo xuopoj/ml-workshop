@@ -1,0 +1,64 @@
+# ML Workshop Proxy/Cache Server
+# Combines: Whistle (HTTP proxy), devpi (pip cache), apt-cacher-ng (apt mirror)
+
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl gnupg \
+    python3 python3-pip \
+    apt-cacher-ng \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js for Whistle (NodeSource includes npm)
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/* \
+    && node --version && npm --version
+
+# Install Whistle (HTTP/HTTPS proxy)
+RUN npm install -g whistle
+
+# Install devpi (pip cache/index server)
+RUN pip3 install --no-cache-dir devpi-server devpi-web
+
+# Create directories
+RUN mkdir -p /data/whistle /data/devpi /data/apt-cacher-ng /var/log/supervisor \
+    && mkdir -p /etc/whistle /data/whistle/certs
+
+# Copy pre-generated CA certificate for HTTPS interception
+COPY certs/rootCA.key certs/rootCA.crt /data/whistle/certs/
+
+# Add CA cert to system trust store (for devpi to trust Whistle proxy)
+COPY certs/rootCA.crt /usr/local/share/ca-certificates/ml-workshop-ca.crt
+RUN update-ca-certificates
+
+# Configure apt-cacher-ng
+RUN echo "CacheDir: /data/apt-cacher-ng" >> /etc/apt-cacher-ng/acng.conf \
+    && echo "LogDir: /var/log/apt-cacher-ng" >> /etc/apt-cacher-ng/acng.conf \
+    && echo "Port: 3142" >> /etc/apt-cacher-ng/acng.conf \
+    && echo "PassThroughPattern: .*" >> /etc/apt-cacher-ng/acng.conf \
+    && echo "Proxy: http://127.0.0.1:8899" >> /etc/apt-cacher-ng/acng.conf
+
+# Supervisor config to run all services
+COPY proxy-supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Startup script
+COPY proxy-start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
+
+# Expose ports
+# 8899: Whistle proxy
+# 8900: Whistle web UI
+# 3141: devpi (pip)
+# 3142: apt-cacher-ng
+EXPOSE 8899 8900 3141 3142
+
+
+# Volumes for persistent data
+VOLUME ["/data/whistle", "/data/devpi", "/data/apt-cacher-ng"]
+
+CMD ["/usr/local/bin/start.sh"]

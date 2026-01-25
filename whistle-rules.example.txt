@@ -1,0 +1,33 @@
+# Whistle Rules Template for ML Workshop
+# Copy these rules to Whistle UI at http://localhost:8900 -> Rules
+# Documentation: https://wproxy.org/whistle/rules/
+
+# =============================================================================
+# Upstream Proxy (for production behind corporate firewall)
+# =============================================================================
+# Route all traffic through upstream proxy with authentication
+# * proxy://username:password@corporate-proxy:8080
+
+# =============================================================================
+# Bypass Rules (local services should not go through upstream proxy)
+# =============================================================================
+# /^https?:\/\/(localhost|127\.0\.0\.1)/ enable://capture
+# /^https?:\/\/ml-workshop/ enable://capture
+
+# =============================================================================
+# Domain-specific Rules
+# =============================================================================
+# PyPI (pip packages)
+# *.pypi.org proxy://username:password@corporate-proxy:8080
+# files.pythonhosted.org proxy://username:password@corporate-proxy:8080
+
+# Hugging Face (ML models)
+# *.huggingface.co proxy://username:password@corporate-proxy:8080
+
+# GitHub
+# *.github.com proxy://username:password@corporate-proxy:8080
+# *.githubusercontent.com proxy://username:password@corporate-proxy:8080
+
+# Docker Registry
+# *.docker.io proxy://username:password@corporate-proxy:8080
+# *.docker.com proxy://username:password@corporate-proxy:8080

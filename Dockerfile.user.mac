@@ -1,0 +1,52 @@
+# User Jupyter Container with Docker-in-Docker (Mac testing version)
+# Simplified version without NPU dependencies
+
+FROM python:3.11
+
+# Install Docker CLI and daemon for DinD
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl gnupg sudo \
+    && install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
+    && chmod a+r /etc/apt/keyrings/docker.asc \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list \
+    && apt-get update \
+    && apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages
+RUN pip install --no-cache-dir \
+    jupyterlab jupyterhub \
+    jupyterlab-git ipywidgets \
+    numpy pandas matplotlib seaborn plotly scikit-learn
+
+# Copy startup script for DinD
+COPY start-notebook.sh /usr/local/bin/start-notebook.sh
+RUN chmod +x /usr/local/bin/start-notebook.sh
+
+# Copy CA certificate for proxy (enables HTTPS through Whistle)
+COPY --chmod=644 certs/rootCA.crt /usr/local/share/ca-certificates/ml-workshop-ca.crt
+RUN update-ca-certificates
+
+# Configure pip to use local devpi cache
+RUN mkdir -p /etc/pip \
+    && printf "[global]\nindex-url = http://ml-workshop-proxy:3141/root/pypi/+simple/\ntrusted-host = ml-workshop-proxy\n" > /etc/pip/pip.conf
+
+# Configure apt to use apt-cacher-ng
+RUN printf 'Acquire::http::Proxy "http://ml-workshop-proxy:3142";\n' > /etc/apt/apt.conf.d/00proxy
+
+# Set up workshop directories (will be mounted)
+RUN mkdir -p /opt/workshop /home/jovyan/work
+
+# Create jovyan user (JupyterHub convention)
+RUN useradd -m -s /bin/bash -u 1000 jovyan \
+    && usermod -aG docker jovyan
+
+# Configure Jupyter
+RUN mkdir -p /home/jovyan/.jupyter \
+    && chown -R jovyan:jovyan /home/jovyan
+
+WORKDIR /home/jovyan
+EXPOSE 8888
+
+CMD ["/usr/local/bin/start-notebook.sh"]

@@ -1,0 +1,10 @@
+{% extends "templates/page.html" %}
+
+{% block nav_bar_left_items %}
+  {{ super() }}
+  {% if 'admin-ui' in parsed_scopes %}
+    <li class="nav-item">
+      <a class="nav-link" href="{{ base_url }}authorize">Authorize</a>
+    </li>
+  {% endif %}
+{% endblock nav_bar_left_items %}
