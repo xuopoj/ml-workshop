@@ -58,15 +58,38 @@ c.DockerSpawner.name_template = 'ml-workshop-user-{username}'
 c.DockerSpawner.remove = True
 
 # User containers need --privileged for DinD
-c.DockerSpawner.extra_host_config = {
+extra_host_config = {
     'privileged': True,
 }
+
+# Mount Ascend NPU devices if ASCEND_VISIBLE_DEVICES is set
+# Example: ASCEND_VISIBLE_DEVICES=0,1,2,3 or ASCEND_VISIBLE_DEVICES=all
+ascend_devices = os.environ.get('ASCEND_VISIBLE_DEVICES', '')
+if ascend_devices:
+    devices = [
+        '/dev/davinci_manager:/dev/davinci_manager',
+        '/dev/devmm_svm:/dev/devmm_svm',
+        '/dev/hisi_hdc:/dev/hisi_hdc',
+    ]
+    if ascend_devices.lower() == 'all':
+        for i in range(8):
+            devices.append(f'/dev/davinci{i}:/dev/davinci{i}')
+    else:
+        for idx in ascend_devices.split(','):
+            devices.append(f'/dev/davinci{idx.strip()}:/dev/davinci{idx.strip()}')
+
+    extra_host_config['devices'] = devices
+    extra_host_config['binds'] = {
+        '/usr/local/Ascend/driver': {'bind': '/usr/local/Ascend/driver', 'mode': 'ro'},
+    }
+
+c.DockerSpawner.extra_host_config = extra_host_config
 
 # Default URL
 c.DockerSpawner.default_url = '/lab'
 
 # Notebook directory inside container
-c.DockerSpawner.notebook_dir = '/home/jovyan'
+c.DockerSpawner.notebook_dir = '/home/ma-user'
 
 # Environment variables for proxy (air-gapped environment)
 c.DockerSpawner.environment = {
@@ -84,31 +107,47 @@ c.DockerSpawner.environment = {
 # Volume Mounts - Different for Admin vs Regular Users
 # =============================================================================
 
+# Host paths (set via environment variables):
+# - WORKSHOP_CONTENT: lessons/, models/, datasets/
+# - STUDENT_WORK: shared dir, each student gets {STUDENT_WORK}/{username}/
+
+import os as _os
+
 def pre_spawn_hook(spawner):
-    """
-    Configure volumes based on user role.
-    Admins get read-write access, regular users get read-only.
-    """
     username = spawner.user.name
     is_admin = spawner.user.admin
 
-    # Base volumes for all users
     volumes = {
-        # Persistent user data
-        f'jupyter-{username}': '/home/jovyan/work',
-        # Docker data for DinD (isolated per user)
+        f'jupyter-{username}': '/home/ma-user/work',
         f'jupyter-{username}-docker': '/var/lib/docker',
     }
 
-    # Workshop content - single volume with lessons/datasets/models subdirs
-    if is_admin:
-        # Admin: read-write access
-        volumes['workshop-content'] = '/opt/workshop'
-        spawner.log.info(f"Admin user {username}: read-write access")
+    # Workshop content
+    workshop_path = os.environ.get('WORKSHOP_CONTENT')
+    if workshop_path:
+        mode = 'rw' if is_admin else 'ro'
+        volumes[workshop_path] = {'bind': '/opt/workshop', 'mode': mode}
     else:
-        # Regular user: read-only access
-        volumes['workshop-content'] = {'bind': '/opt/workshop', 'mode': 'ro'}
-        spawner.log.info(f"Regular user {username}: read-only access")
+        if is_admin:
+            volumes['workshop-content'] = '/opt/workshop'
+        else:
+            volumes['workshop-content'] = {'bind': '/opt/workshop', 'mode': 'ro'}
+
+    # Student work: admins see all, students see only their subdir
+    # STUDENT_WORK: path inside hub container (for creating dirs)
+    # STUDENT_WORK_HOST: host path (for mounting to user containers)
+    student_work_path = os.environ.get('STUDENT_WORK')
+    student_work_host = os.environ.get('STUDENT_WORK_HOST')
+    if student_work_path and student_work_host:
+        if is_admin:
+            volumes[student_work_host] = {'bind': '/home/ma-user/student-work', 'mode': 'rw'}
+        else:
+            # Create user subdir on hub (which has the host dir mounted)
+            user_dir_local = f'{student_work_path}/{username}'
+            _os.makedirs(user_dir_local, exist_ok=True)
+            # Mount from host path to user container
+            user_dir_host = f'{student_work_host}/{username}'
+            volumes[user_dir_host] = {'bind': '/home/ma-user/student-work', 'mode': 'rw'}
 
     spawner.volumes = volumes
 

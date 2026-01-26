@@ -2,8 +2,20 @@
 # Docker run commands for JupyterHub with DockerSpawner + DinD
 # Each user gets their own container with isolated Docker daemon
 # Includes proxy/cache services for air-gapped environments
+#
+# Usage:
+#   ./docker-run.sh              # Normal mode (build images)
+#   ./docker-run.sh --no-build   # Skip building images
 
 set -e
+
+NO_BUILD=false
+for arg in "$@"; do
+    case $arg in
+        --no-build) NO_BUILD=true ;;
+    esac
+done
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 NETWORK_NAME="ml-workshop-network"
 HUB_CONTAINER="ml-workshop-hub"
@@ -46,16 +58,20 @@ docker volume create proxy-data 2>/dev/null || true
 # =============================================================================
 # Build images
 # =============================================================================
-echo "Building images..."
+if [ "$NO_BUILD" = false ]; then
+    echo "Building images..."
 
-# Build proxy image (uses shared CA cert from certs/)
-docker build -t ${PROXY_IMAGE} -f Dockerfile.proxy .
+    # Build proxy image (uses shared CA cert from certs/)
+    docker build -t ${PROXY_IMAGE} -f Dockerfile.proxy .
 
-# Build hub image
-docker build -t ${HUB_IMAGE} -f Dockerfile.hub .
+    # Build hub image
+    docker build -t ${HUB_IMAGE} -f Dockerfile.hub .
 
-# Build user image (uses shared CA cert from certs/)
-docker build -t ${USER_IMAGE} -f Dockerfile.user .
+    # Build user image (uses shared CA cert from certs/)
+    docker build -t ${USER_IMAGE} -f Dockerfile.user .
+else
+    echo "Skipping image builds (--no-build)"
+fi
 
 # =============================================================================
 # Stop and remove existing containers
@@ -85,6 +101,30 @@ docker run -d \
 # =============================================================================
 echo "Starting JupyterHub..."
 
+# Optional mounts for local development
+HUB_DEV_MOUNTS=""
+if [ -f "$(pwd)/jupyterhub_config.py" ]; then
+    HUB_DEV_MOUNTS="$HUB_DEV_MOUNTS -v $(pwd)/jupyterhub_config.py:/etc/jupyterhub/jupyterhub_config.py:ro"
+fi
+if [ -d "$(pwd)/templates" ]; then
+    HUB_DEV_MOUNTS="$HUB_DEV_MOUNTS -v $(pwd)/templates:/etc/jupyterhub/templates:ro"
+fi
+
+# Workshop content from host (contains lessons/, models/, datasets/)
+WORKSHOP_CONTENT_ENV=""
+if [ -d "$(pwd)/workshop-content" ]; then
+    WORKSHOP_CONTENT_ENV="-e WORKSHOP_CONTENT=$(pwd)/workshop-content"
+fi
+
+# Student work directory (each student gets their own subdir)
+# Mount to hub so it can create user subdirs before spawning
+STUDENT_WORK_ENV=""
+STUDENT_WORK_MOUNT=""
+if [ -d "$(pwd)/student-work" ]; then
+    STUDENT_WORK_ENV="-e STUDENT_WORK=/data/student-work -e STUDENT_WORK_HOST=$(pwd)/student-work"
+    STUDENT_WORK_MOUNT="-v $(pwd)/student-work:/data/student-work"
+fi
+
 docker run -d \
     --name ${HUB_CONTAINER} \
     --network ${NETWORK_NAME} \
@@ -92,8 +132,13 @@ docker run -d \
     -p 8000:8000 \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v jupyterhub-data:/opt/jupyterhub \
+    ${HUB_DEV_MOUNTS} \
+    ${STUDENT_WORK_MOUNT} \
     -e USER_IMAGE=${USER_IMAGE} \
     -e TZ=Asia/Shanghai \
+    -e ASCEND_VISIBLE_DEVICES=${ASCEND_VISIBLE_DEVICES:-} \
+    ${WORKSHOP_CONTENT_ENV} \
+    ${STUDENT_WORK_ENV} \
     ${HUB_IMAGE}
 
 echo ""

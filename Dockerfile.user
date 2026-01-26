@@ -52,22 +52,21 @@ RUN mkdir -p /etc/pip \
 RUN printf 'Acquire::http::Proxy "http://ml-workshop-proxy:3142";\n' > /etc/apt/apt.conf.d/00proxy
 
 # Set up workshop directories (will be mounted)
-RUN mkdir -p /opt/workshop/{lessons,datasets,models} /home/jovyan/work
+RUN mkdir -p /opt/workshop/{lessons,datasets,models} /home/ma-user/work
 
-# Use existing ma-user (UID 1000) or create jovyan
+# Use existing ma-user (UID 1000) or create it
 # NPU base image has ma-user:1000, add to docker group
 RUN if id ma-user &>/dev/null; then \
         usermod -aG docker ma-user 2>/dev/null || true; \
-        ln -sf /home/ma-user /home/jovyan; \
     else \
-        useradd -m -s /bin/bash -u 1000 jovyan && usermod -aG docker jovyan; \
+        useradd -m -s /bin/bash -u 1000 ma-user && usermod -aG docker ma-user; \
     fi
 
 # Configure Jupyter
-RUN mkdir -p /home/jovyan/.jupyter \
-    && chown -R 1000:100 /home/jovyan 2>/dev/null || true
+RUN mkdir -p /home/ma-user/.jupyter \
+    && chown -R 1000:100 /home/ma-user 2>/dev/null || true
 
-WORKDIR /home/jovyan
+WORKDIR /home/ma-user
 EXPOSE 8888
 
 # Start script handles DinD daemon + JupyterLab

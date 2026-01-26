@@ -33,8 +33,8 @@ if docker info > /dev/null 2>&1; then
 fi
 
 # Create symlink to workshop materials if not exists
-if [ ! -L /home/jovyan/workshop ] && [ -d /opt/workshop ]; then
-    ln -sf /opt/workshop /home/jovyan/workshop
+if [ ! -L /home/ma-user/workshop ] && [ -d /opt/workshop ]; then
+    ln -sf /opt/workshop /home/ma-user/workshop
 fi
 
 # Start JupyterLab
@@ -42,6 +42,6 @@ fi
 exec jupyterhub-singleuser \
     --ip=0.0.0.0 \
     --port=8888 \
-    --notebook-dir=/home/jovyan \
+    --notebook-dir=/home/ma-user \
     --ServerApp.default_url=/lab \
     --ServerApp.allow_root=True

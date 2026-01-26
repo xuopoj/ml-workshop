@@ -10,3 +10,9 @@ wheels/
 .venv
 
 arxiv/
+images/
+
+.DS_Store
+student-work
+workshop-content
+certs
