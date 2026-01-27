@@ -82,6 +82,10 @@ if ascend_devices:
     extra_host_config['binds'] = {
         '/usr/local/Ascend/driver': {'bind': '/usr/local/Ascend/driver', 'mode': 'ro'},
     }
+    # Mount Ascend tools if they exist
+    for tool in ['/usr/local/sbin/npu-smi', '/usr/local/Ascend/driver/tool/hccn_tool']:
+        if os.path.exists(tool):
+            extra_host_config['binds'][tool] = {'bind': tool, 'mode': 'ro'}
 
 c.DockerSpawner.extra_host_config = extra_host_config
 
