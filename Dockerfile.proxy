@@ -30,7 +30,9 @@ RUN mkdir -p /data/whistle /data/devpi /data/apt-cacher-ng /var/log/supervisor \
     && mkdir -p /etc/whistle /data/whistle/certs
 
 # Copy pre-generated CA certificate for HTTPS interception
-COPY certs/rootCA.key certs/rootCA.crt /data/whistle/certs/
+# Whistle expects root.crt and root.key naming
+COPY certs/rootCA.crt /data/whistle/certs/root.crt
+COPY certs/rootCA.key /data/whistle/certs/root.key
 
 # Add CA cert to system trust store (for devpi to trust Whistle proxy)
 COPY certs/rootCA.crt /usr/local/share/ca-certificates/ml-workshop-ca.crt

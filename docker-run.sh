@@ -94,6 +94,8 @@ docker run -d \
     -p 3141:3141 \
     -p 3142:3142 \
     -v proxy-data:/data \
+    -e WHISTLE_USERNAME="${WHISTLE_USERNAME:-admin}" \
+    -e WHISTLE_PASSWORD="${WHISTLE_PASSWORD:-Passwort}" \
     ${PROXY_IMAGE}
 
 # =============================================================================
@@ -129,7 +131,7 @@ docker run -d \
     --name ${HUB_CONTAINER} \
     --network ${NETWORK_NAME} \
     --restart unless-stopped \
-    -p 8000:8000 \
+    -p 28000:8000 \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v jupyterhub-data:/opt/jupyterhub \
     ${HUB_DEV_MOUNTS} \
@@ -147,8 +149,8 @@ echo "ML Workshop Started!"
 echo "========================================"
 echo ""
 echo "Services:"
-echo "  JupyterHub:       http://localhost:8000"
-echo "  Whistle Proxy UI: http://localhost:8900"
+echo "  JupyterHub:       http://localhost:28000"
+echo "  Whistle Proxy UI: http://localhost:8900 (user: ${WHISTLE_USERNAME:-admin}, pass: ${WHISTLE_PASSWORD:-Passwort})"
 echo "  devpi (pip):      http://localhost:3141"
 echo "  apt-cacher-ng:    http://localhost:3142"
 echo ""

@@ -58,14 +58,13 @@ modelscope upload xuopoj/ascend-factory ./model --exclude "*.log" "*.tmp"
 # 后台上传大文件
 nohup modelscope upload xuopoj/ascend-factory ./large_file.tar.gz > upload.log 2>&1 &
 tail -f upload.log
+
+# 上传镜像
+modelscope upload xuopoj/ascend-factory ml-workshop-hub.tar.gz images/ml-workshop-hub.tar.gz
+modelscope upload xuopoj/ascend-factory ml-workshop-user.tar.gz images/ml-workshop-user.tar.gz
+modelscope upload xuopoj/ascend-factory ml-workshop-proxy.tar.gz images/ml-workshop-proxy.tar.gz
 ```
 
-### this project
-
-```bash
-modelscope upload xuopoj/ascend-factory  ml-workshop-user.tar.gz images/
-```
----
 
 ## 下载 (Download)
 
@@ -114,6 +113,11 @@ modelscope download xuopoj/ascend-factory --exclude "*.bin"
 
 # 下载数据集
 modelscope download --dataset username/my-dataset --local_dir ./data
+
+# 下载镜像
+modelscope download xuopoj/ascend-factory images/ml-workshop-hub.tar.gz --local_dir ./
+modelscope download xuopoj/ascend-factory images/ml-workshop-proxy.tar.gz --local_dir ./
+modelscope download xuopoj/ascend-factory images/ml-workshop-user.tar.gz --local_dir ./
 ```
 
 ---
