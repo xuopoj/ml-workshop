@@ -29,6 +29,28 @@ cat > /home/jovyan/.openclaw/openclaw.json <<EOF
       "allowInsecureAuth": true,
       "dangerouslyDisableDeviceAuth": true
     }
+  },
+  "models": {
+    "providers": {
+      "huawei": {
+        "baseUrl": "https://api.openai.rnd.huawei.com/v1",
+        "apiKey": "sk-1234",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "qwen3-32b",
+            "name": "Qwen3 32B"
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "huawei/qwen3-32b"
+      }
+    }
   }
 }
 EOF
