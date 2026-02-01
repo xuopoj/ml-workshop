@@ -44,7 +44,11 @@ c.NativeAuthenticator.seconds_before_next_try = 300  # 5 min lockout
 
 c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
 
-# User container image
+# User container images - users pick from a dropdown when spawning
+c.DockerSpawner.allowed_images = {
+    'ML Workshop': os.environ.get('USER_IMAGE', 'ml-workshop-user:latest'),
+    'OpenClaw Showcase': os.environ.get('OPENCLAW_IMAGE', 'ml-workshop-openclaw:latest'),
+}
 c.DockerSpawner.image = os.environ.get('USER_IMAGE', 'ml-workshop-user:latest')
 
 # Network - must match docker-compose network
@@ -121,21 +125,34 @@ def pre_spawn_hook(spawner):
     username = spawner.user.name
     is_admin = spawner.user.admin
 
-    volumes = {
-        f'jupyter-{username}': '/home/ma-user/work',
-        f'jupyter-{username}-docker': '/var/lib/docker',
-    }
+    # Determine home directory based on selected image
+    openclaw_image = os.environ.get('OPENCLAW_IMAGE', 'ml-workshop-openclaw:latest')
+    is_openclaw = (spawner.image == openclaw_image)
+    home_dir = '/home/jovyan' if is_openclaw else '/home/ma-user'
+    spawner.notebook_dir = home_dir
 
-    # Workshop content
-    workshop_path = os.environ.get('WORKSHOP_CONTENT')
-    if workshop_path:
-        mode = 'rw' if is_admin else 'ro'
-        volumes[workshop_path] = {'bind': '/opt/workshop', 'mode': mode}
-    else:
-        if is_admin:
-            volumes['workshop-content'] = '/opt/workshop'
+    # OpenClaw: no notebook_dir needed, just serve the gateway
+    if is_openclaw:
+        spawner.default_url = '/'
+
+    volumes = {
+        f'jupyter-{username}': f'{home_dir}/work',
+    }
+    # Only mount Docker-in-Docker volume for ML workshop image
+    if not is_openclaw:
+        volumes[f'jupyter-{username}-docker'] = '/var/lib/docker'
+
+    # Workshop content (skip for OpenClaw image)
+    if not is_openclaw:
+        workshop_path = os.environ.get('WORKSHOP_CONTENT')
+        if workshop_path:
+            mode = 'rw' if is_admin else 'ro'
+            volumes[workshop_path] = {'bind': '/opt/workshop', 'mode': mode}
         else:
-            volumes['workshop-content'] = {'bind': '/opt/workshop', 'mode': 'ro'}
+            if is_admin:
+                volumes['workshop-content'] = '/opt/workshop'
+            else:
+                volumes['workshop-content'] = {'bind': '/opt/workshop', 'mode': 'ro'}
 
     # Student work: admins see all, students see only their subdir
     # STUDENT_WORK: path inside hub container (for creating dirs)
@@ -143,15 +160,14 @@ def pre_spawn_hook(spawner):
     student_work_path = os.environ.get('STUDENT_WORK')
     student_work_host = os.environ.get('STUDENT_WORK_HOST')
     if student_work_path and student_work_host:
+        student_work_bind = f'{home_dir}/student-work'
         if is_admin:
-            volumes[student_work_host] = {'bind': '/home/ma-user/student-work', 'mode': 'rw'}
+            volumes[student_work_host] = {'bind': student_work_bind, 'mode': 'rw'}
         else:
-            # Create user subdir on hub (which has the host dir mounted)
             user_dir_local = f'{student_work_path}/{username}'
             _os.makedirs(user_dir_local, exist_ok=True)
-            # Mount from host path to user container
             user_dir_host = f'{student_work_host}/{username}'
-            volumes[user_dir_host] = {'bind': '/home/ma-user/student-work', 'mode': 'rw'}
+            volumes[user_dir_host] = {'bind': student_work_bind, 'mode': 'rw'}
 
     spawner.volumes = volumes
 

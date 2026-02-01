@@ -22,6 +22,7 @@ HUB_CONTAINER="ml-workshop-hub"
 PROXY_CONTAINER="ml-workshop-proxy"
 HUB_IMAGE="ml-workshop-hub:latest"
 USER_IMAGE="ml-workshop-user:latest"
+OPENCLAW_IMAGE="ml-workshop-openclaw:latest"
 PROXY_IMAGE="ml-workshop-proxy:latest"
 
 # =============================================================================
@@ -69,6 +70,9 @@ if [ "$NO_BUILD" = false ]; then
 
     # Build user image (uses shared CA cert from certs/)
     docker build -t ${USER_IMAGE} -f Dockerfile.user .
+
+    # Build OpenClaw showcase image
+    docker build -t ${OPENCLAW_IMAGE} -f Dockerfile.user.openclaw .
 else
     echo "Skipping image builds (--no-build)"
 fi
@@ -137,6 +141,7 @@ docker run -d \
     ${HUB_DEV_MOUNTS} \
     ${STUDENT_WORK_MOUNT} \
     -e USER_IMAGE=${USER_IMAGE} \
+    -e OPENCLAW_IMAGE=${OPENCLAW_IMAGE} \
     -e TZ=Asia/Shanghai \
     -e ASCEND_VISIBLE_DEVICES=${ASCEND_VISIBLE_DEVICES:-4,5,6,7} \
     ${WORKSHOP_CONTENT_ENV} \

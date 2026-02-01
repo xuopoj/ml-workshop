@@ -63,6 +63,7 @@ tail -f upload.log
 modelscope upload xuopoj/ascend-factory ml-workshop-hub.tar.gz images/ml-workshop-hub.tar.gz
 modelscope upload xuopoj/ascend-factory ml-workshop-user.tar.gz images/ml-workshop-user.tar.gz
 modelscope upload xuopoj/ascend-factory ml-workshop-proxy.tar.gz images/ml-workshop-proxy.tar.gz
+modelscope upload xuopoj/ascend-factory ml-workshop-openclaw.tar.gz images/ml-workshop-openclaw.tar.gz
 ```
 
 
@@ -118,6 +119,7 @@ modelscope download --dataset username/my-dataset --local_dir ./data
 modelscope download xuopoj/ascend-factory images/ml-workshop-hub.tar.gz --local_dir ./
 modelscope download xuopoj/ascend-factory images/ml-workshop-proxy.tar.gz --local_dir ./
 modelscope download xuopoj/ascend-factory images/ml-workshop-user.tar.gz --local_dir ./
+modelscope download xuopoj/ascend-factory images/ml-workshop-openclaw.tar.gz --local_dir ./
 ```
 
 ---
