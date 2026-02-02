@@ -9,10 +9,11 @@
 # * proxy://username:password@corporate-proxy:8080
 
 # =============================================================================
-# Bypass Rules (local services should not go through upstream proxy)
+# Bypass Rules (local/internal services should not go through upstream proxy)
 # =============================================================================
-# /^https?:\/\/(localhost|127\.0\.0\.1)/ enable://capture
-# /^https?:\/\/ml-workshop/ enable://capture
+/^https?:\/\/(localhost|127\.0\.0\.1)/ enable://capture
+/^https?:\/\/ml-workshop/ enable://capture
+*.huawei.com enable://capture
 
 # =============================================================================
 # Domain-specific Rules

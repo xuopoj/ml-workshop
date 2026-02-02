@@ -1,7 +1,7 @@
 # OpenClaw Showcase Container
 # Node.js base with OpenClaw AI assistant + JupyterLab
 
-FROM node:22
+FROM node:24
 
 # Install Python and system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -19,11 +19,20 @@ RUN pip install --no-cache-dir --break-system-packages \
 COPY --chmod=644 certs/rootCA.crt /usr/local/share/ca-certificates/ml-workshop-ca.crt
 RUN update-ca-certificates
 
+# Configure runtime proxies (apt-cacher-ng, pip cache)
+RUN printf 'Acquire::http::Proxy "http://ml-workshop-proxy:3142";\n' > /etc/apt/apt.conf.d/00proxy \
+    && mkdir -p /etc/pip \
+    && printf "[global]\nindex-url = http://ml-workshop-proxy:3141/root/pypi/+simple/\ntrusted-host = ml-workshop-proxy\n" > /etc/pip/pip.conf
+
+# Enable Node.js native proxy support (reads HTTP_PROXY/HTTPS_PROXY env vars)
+ENV NODE_USE_ENV_PROXY=1
+
 # Rename 'node' user (UID 1000) to 'jovyan' (JupyterHub convention)
 RUN usermod -l jovyan -d /home/jovyan -m node \
     && groupmod -n jovyan node \
     && mkdir -p /home/jovyan/.jupyter \
-    && chown -R jovyan:jovyan /home/jovyan
+    && chown -R jovyan:jovyan /home/jovyan \
+    && echo "jovyan ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Copy startup script, config template, and getting-started template
 COPY start-openclaw.sh /usr/local/bin/start-openclaw.sh
