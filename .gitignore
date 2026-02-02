@@ -14,5 +14,9 @@ images/
 
 .DS_Store
 student-work
-workshop-content
+workshop-content/models
+workshop-content/datasets
+workshop-content/lessons/*.tar
+workshop-content/lessons/**/.ipynb_checkpoints
+workshop-content/lessons/**/data
 certs
