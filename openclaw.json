@@ -1,0 +1,52 @@
+{
+  "gateway": {
+    "mode": "local",
+    "bind": "lan",
+    "port": 18789,
+    "auth": {
+      "mode": "token",
+      "token": "OPENCLAW_TOKEN_PLACEHOLDER"
+    },
+    "controlUi": {
+      "allowInsecureAuth": true,
+      "dangerouslyDisableDeviceAuth": true
+    }
+  },
+  "models": {
+    "providers": {
+      "ollama": {
+        "baseUrl": "http://host.docker.internal:11434/v1",
+        "apiKey": "ollama",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "qwen3:0.6b",
+            "name": "Qwen3 0.6B"
+          }
+        ]
+      },
+      "huawei": {
+        "baseUrl": "http://api.openai.rnd.huawei.com/v1",
+        "apiKey": "sk-1234",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "qwen3-32b",
+            "name": "Qwen3 32B"
+          },
+          {
+            "id": "deepseek-r1-0528",
+            "name": "DeepSeek R1(0528)"
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "huawei/qwen3-32b"
+      }
+    }
+  }
+}

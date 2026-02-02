@@ -11,9 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install OpenClaw
 RUN npm install -g openclaw@latest
 
-# Install JupyterLab + server proxy (allows accessing OpenClaw UI through JupyterHub)
+# Install JupyterLab + JupyterHub (for singleuser server with terminal access)
 RUN pip install --no-cache-dir --break-system-packages \
-    jupyterlab jupyterhub jupyter-server-proxy
+    jupyterlab jupyterhub
 
 # Copy CA certificate for proxy
 COPY --chmod=644 certs/rootCA.crt /usr/local/share/ca-certificates/ml-workshop-ca.crt
@@ -25,12 +25,13 @@ RUN usermod -l jovyan -d /home/jovyan -m node \
     && mkdir -p /home/jovyan/.jupyter \
     && chown -R jovyan:jovyan /home/jovyan
 
-# Copy startup script and proxy
+# Copy startup script, config template, and getting-started template
 COPY start-openclaw.sh /usr/local/bin/start-openclaw.sh
-COPY openclaw-proxy.mjs /usr/local/bin/openclaw-proxy.mjs
+COPY openclaw.json /usr/local/share/openclaw.json
+COPY openclaw-getting-started.md /usr/local/share/openclaw-getting-started.md
 RUN chmod +x /usr/local/bin/start-openclaw.sh
 
 WORKDIR /home/jovyan
-EXPOSE 8888
+EXPOSE 8888 18789
 
 CMD ["/usr/local/bin/start-openclaw.sh"]

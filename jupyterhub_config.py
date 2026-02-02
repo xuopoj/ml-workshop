@@ -105,8 +105,8 @@ c.DockerSpawner.environment = {
     'HTTPS_PROXY': 'http://ml-workshop-proxy:8899',
     'http_proxy': 'http://ml-workshop-proxy:8899',
     'https_proxy': 'http://ml-workshop-proxy:8899',
-    'NO_PROXY': 'localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy',
-    'no_proxy': 'localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy',
+    'NO_PROXY': 'localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy,*.huawei.com',
+    'no_proxy': 'localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy,*.huawei.com',
     'PIP_INDEX_URL': 'http://ml-workshop-proxy:3141/root/pypi/+simple/',
     'PIP_TRUSTED_HOST': 'ml-workshop-proxy',
 }
@@ -120,20 +120,52 @@ c.DockerSpawner.environment = {
 # - STUDENT_WORK: shared dir, each student gets {STUDENT_WORK}/{username}/
 
 import os as _os
+import json
+import fcntl
+
+OPENCLAW_PORT_BASE = 18789
+OPENCLAW_PORT_FILE = '/opt/jupyterhub/openclaw-ports.json'
+
+def _get_openclaw_port(username):
+    """Assign a sequential port per user, persisted in a JSON file."""
+    try:
+        with open(OPENCLAW_PORT_FILE, 'r') as f:
+            fcntl.flock(f, fcntl.LOCK_SH)
+            ports = json.load(f)
+            fcntl.flock(f, fcntl.LOCK_UN)
+    except (FileNotFoundError, json.JSONDecodeError):
+        ports = {}
+    if username in ports:
+        return ports[username]
+    port = OPENCLAW_PORT_BASE + len(ports) + 1
+    ports[username] = port
+    with open(OPENCLAW_PORT_FILE, 'w') as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        json.dump(ports, f)
+        fcntl.flock(f, fcntl.LOCK_UN)
+    return port
 
 def pre_spawn_hook(spawner):
     username = spawner.user.name
     is_admin = spawner.user.admin
 
     # Determine home directory based on selected image
+    # In pre_spawn_hook, spawner.image is not yet updated from user_options.
+    # user_options['image'] contains the display name key from allowed_images.
     openclaw_image = os.environ.get('OPENCLAW_IMAGE', 'ml-workshop-openclaw:latest')
-    is_openclaw = (spawner.image == openclaw_image)
+    selected = spawner.user_options.get('image', '')
+    resolved_image = spawner.allowed_images.get(selected, spawner.image)
+    is_openclaw = (resolved_image == openclaw_image)
     home_dir = '/home/jovyan' if is_openclaw else '/home/ma-user'
     spawner.notebook_dir = home_dir
 
-    # OpenClaw: no notebook_dir needed, just serve the gateway
+    # OpenClaw: expose gateway port directly on host, use JupyterLab for terminal
     if is_openclaw:
-        spawner.default_url = '/'
+        host_port = _get_openclaw_port(username)
+        spawner.extra_create_kwargs.setdefault('ports', {})['18789/tcp'] = {}
+        spawner.extra_host_config.setdefault('port_bindings', {})['18789/tcp'] = ('0.0.0.0', host_port)
+        spawner.environment['OPENCLAW_HOST_PORT'] = str(host_port)
+        spawner.environment['OPENCLAW_GATEWAY_HOST'] = os.environ.get('OPENCLAW_GATEWAY_HOST', 'localhost')
 
     volumes = {
         f'jupyter-{username}': f'{home_dir}/work',
