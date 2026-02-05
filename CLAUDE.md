@@ -5,7 +5,7 @@ Deep learning tutorial using JupyterHub with Docker.
 ## Quick Start
 
 ```bash
-./docker-run.sh                        # Build images, start all containers
+./start-docker.sh                      # Start all containers (skips restart if unchanged)
 docker logs ml-workshop-hub            # View hub logs
 docker stop ml-workshop-hub ml-workshop-proxy && docker rm ml-workshop-hub ml-workshop-proxy  # Stop all
 ```
@@ -15,7 +15,7 @@ Access: http://localhost:8000
 ## Architecture
 
 ```
-docker-run.sh           # Main startup script
+start-docker.sh         # Start containers (skip if image unchanged)
 jupyterhub_config.py    # Hub config with DockerSpawner + NativeAuthenticator
 Dockerfile.hub          # JupyterHub orchestrator (ml-workshop-hub)
 Dockerfile.proxy        # Cache server (ml-workshop-proxy)

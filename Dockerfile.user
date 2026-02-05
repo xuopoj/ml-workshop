@@ -8,7 +8,7 @@ USER root
 
 # Install Docker CLI and daemon for DinD
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl gnupg lsb-release sudo \
+    ca-certificates curl gnupg lsb-release sudo openssh-server \
     && mkdir -p /etc/apt/keyrings \
     && curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list \
@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Python packages
 RUN pip install --no-cache-dir \
     jupyterlab jupyterhub \
-    jupyterlab-git ipywidgets \
+    jupyterlab-git ipywidgets jupyter-server-proxy \
     numpy pandas matplotlib seaborn plotly scikit-learn
 
 # Install ML/AI packages with torch pinned
@@ -36,9 +36,28 @@ RUN pip install --no-cache-dir \
     'langchain-core>=1.0.1,<2.0.0' 'langchain-classic>=1.0.0,<2.0.0' \
     'pydantic-settings>=2.10.1,<3.0.0' 'jiter>=0.10.0,<1' sniffio
 
-# Copy startup script for DinD
+# Install code-server (VSCode in browser)
+RUN curl -fsSL https://code-server.dev/install.sh | sh
+
+# Configure jupyter-server-proxy: /vscode/ -> code-server on 8080
+RUN mkdir -p /etc/jupyter && printf '\
+c.ServerProxy.servers = {\n\
+    "vscode": {\n\
+        "command": [],\n\
+        "port": 8080,\n\
+        "absolute_url": False,\n\
+        "timeout": 30,\n\
+        "launcher_entry": {\n\
+            "enabled": True,\n\
+            "title": "VS Code",\n\
+        },\n\
+    }\n\
+}\n' > /etc/jupyter/jupyter_server_config.py
+
+# Copy startup script and setup guide template
 COPY start-notebook.sh /usr/local/bin/start-notebook.sh
 RUN chmod +x /usr/local/bin/start-notebook.sh
+COPY getstarted.md /usr/local/share/getstarted.md
 
 # Copy CA certificate for proxy (enables HTTPS through Whistle)
 COPY --chmod=644 certs/rootCA.crt /usr/local/share/ca-certificates/ml-workshop-ca.crt
@@ -54,6 +73,9 @@ RUN printf 'Acquire::http::Proxy "http://ml-workshop-proxy:3142";\n' > /etc/apt/
 # Set up workshop directories (will be mounted)
 RUN mkdir -p /opt/workshop/{lessons,datasets,models} /home/ma-user/work
 
+# SSH and code-server runtime directories
+RUN mkdir -p /run/sshd
+
 # Use existing ma-user (UID 1000) or create it
 # NPU base image has ma-user:1000, add to docker group
 RUN if id ma-user &>/dev/null; then \
@@ -62,12 +84,15 @@ RUN if id ma-user &>/dev/null; then \
         useradd -m -s /bin/bash -u 1000 ma-user && usermod -aG docker ma-user; \
     fi
 
+# Give ma-user sudo access (needed for code-server / SSH)
+RUN echo "ma-user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
 # Configure Jupyter
 RUN mkdir -p /home/ma-user/.jupyter \
     && chown -R 1000:100 /home/ma-user 2>/dev/null || true
 
 WORKDIR /home/ma-user
-EXPOSE 8888
+EXPOSE 8888 22
 
 # Start script handles DinD daemon + JupyterLab
 CMD ["/usr/local/bin/start-notebook.sh"]

@@ -126,10 +126,13 @@ import fcntl
 OPENCLAW_PORT_BASE = 18789
 OPENCLAW_PORT_FILE = '/opt/jupyterhub/openclaw-ports.json'
 
-def _get_openclaw_port(username):
+SSH_PORT_BASE = 22222
+SSH_PORT_FILE = '/opt/jupyterhub/ssh-ports.json'
+
+def _get_port(username, port_file, port_base):
     """Assign a sequential port per user, persisted in a JSON file."""
     try:
-        with open(OPENCLAW_PORT_FILE, 'r') as f:
+        with open(port_file, 'r') as f:
             fcntl.flock(f, fcntl.LOCK_SH)
             ports = json.load(f)
             fcntl.flock(f, fcntl.LOCK_UN)
@@ -137,9 +140,9 @@ def _get_openclaw_port(username):
         ports = {}
     if username in ports:
         return ports[username]
-    port = OPENCLAW_PORT_BASE + len(ports) + 1
+    port = port_base + len(ports) + 1
     ports[username] = port
-    with open(OPENCLAW_PORT_FILE, 'w') as f:
+    with open(port_file, 'w') as f:
         fcntl.flock(f, fcntl.LOCK_EX)
         json.dump(ports, f)
         fcntl.flock(f, fcntl.LOCK_UN)
@@ -150,31 +153,38 @@ def pre_spawn_hook(spawner):
     is_admin = spawner.user.admin
 
     # Determine home directory based on selected image
-    # In pre_spawn_hook, spawner.image is not yet updated from user_options.
-    # user_options['image'] contains the display name key from allowed_images.
     openclaw_image = os.environ.get('OPENCLAW_IMAGE', 'ml-workshop-openclaw:latest')
     selected = spawner.user_options.get('image', '')
     resolved_image = spawner.allowed_images.get(selected, spawner.image)
     is_openclaw = (resolved_image == openclaw_image)
+
     home_dir = '/home/jovyan' if is_openclaw else '/home/ma-user'
     spawner.notebook_dir = home_dir
 
-    # OpenClaw: expose gateway port directly on host, use JupyterLab for terminal
+    # OpenClaw: expose gateway port directly on host
     if is_openclaw:
-        host_port = _get_openclaw_port(username)
+        host_port = _get_port(username, OPENCLAW_PORT_FILE, OPENCLAW_PORT_BASE)
         spawner.extra_create_kwargs.setdefault('ports', {})['18789/tcp'] = {}
         spawner.extra_host_config.setdefault('port_bindings', {})['18789/tcp'] = ('0.0.0.0', host_port)
         spawner.environment['OPENCLAW_HOST_PORT'] = str(host_port)
         spawner.environment['OPENCLAW_GATEWAY_HOST'] = os.environ.get('OPENCLAW_GATEWAY_HOST', 'localhost')
 
-    volumes = {
-        f'jupyter-{username}': f'{home_dir}/work',
-    }
-    # Only mount Docker-in-Docker volume for ML workshop image
+    # ML Workshop: expose SSH port for code-server / VSCode Remote
+    if not is_openclaw:
+        ssh_port = _get_port(username, SSH_PORT_FILE, SSH_PORT_BASE)
+        spawner.extra_create_kwargs.setdefault('ports', {})['22/tcp'] = {}
+        spawner.extra_host_config.setdefault('port_bindings', {})['22/tcp'] = ('0.0.0.0', ssh_port)
+        spawner.environment['VSCODE_SSH_PORT'] = str(ssh_port)
+        spawner.environment['VSCODE_SSH_HOST'] = os.environ.get('VSCODE_SSH_HOST', 'localhost')
+
+    volumes = {}
+    volumes[f'jupyter-{username}'] = f'{home_dir}/work'
+
+    # Docker-in-Docker volume for ML Workshop
     if not is_openclaw:
         volumes[f'jupyter-{username}-docker'] = '/var/lib/docker'
 
-    # Workshop content (skip for OpenClaw image)
+    # Workshop content (skip for OpenClaw)
     if not is_openclaw:
         workshop_path = os.environ.get('WORKSHOP_CONTENT')
         if workshop_path:
@@ -187,8 +197,6 @@ def pre_spawn_hook(spawner):
                 volumes['workshop-content'] = {'bind': '/opt/workshop', 'mode': 'ro'}
 
     # Student work: admins see all, students see only their subdir
-    # STUDENT_WORK: path inside hub container (for creating dirs)
-    # STUDENT_WORK_HOST: host path (for mounting to user containers)
     student_work_path = os.environ.get('STUDENT_WORK')
     student_work_host = os.environ.get('STUDENT_WORK_HOST')
     if student_work_path and student_work_host:
