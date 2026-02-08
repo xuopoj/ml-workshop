@@ -22,8 +22,8 @@ RUN pip install --no-cache-dir \
 RUN mkdir -p /etc/jupyterhub /opt/jupyterhub /etc/jupyterhub/templates
 
 # Copy configuration and templates
-COPY jupyterhub_config.py /etc/jupyterhub/jupyterhub_config.py
-COPY templates/ /etc/jupyterhub/templates/
+COPY hub/jupyterhub_config.py /etc/jupyterhub/jupyterhub_config.py
+COPY hub/templates/ /etc/jupyterhub/templates/
 
 WORKDIR /etc/jupyterhub
 EXPOSE 8000

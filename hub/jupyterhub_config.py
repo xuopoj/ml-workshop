@@ -97,7 +97,7 @@ c.DockerSpawner.extra_host_config = extra_host_config
 c.DockerSpawner.default_url = '/lab'
 
 # Notebook directory inside container
-c.DockerSpawner.notebook_dir = '/home/ma-user'
+c.DockerSpawner.notebook_dir = '/root/work'
 
 # Environment variables for proxy (air-gapped environment)
 c.DockerSpawner.environment = {
@@ -158,7 +158,7 @@ def pre_spawn_hook(spawner):
     resolved_image = spawner.allowed_images.get(selected, spawner.image)
     is_openclaw = (resolved_image == openclaw_image)
 
-    home_dir = '/home/jovyan' if is_openclaw else '/home/ma-user'
+    home_dir = '/home/jovyan' if is_openclaw else '/root/work'
     spawner.notebook_dir = home_dir
 
     # OpenClaw: expose gateway port directly on host
@@ -178,7 +178,7 @@ def pre_spawn_hook(spawner):
         spawner.environment['VSCODE_SSH_HOST'] = os.environ.get('VSCODE_SSH_HOST', 'localhost')
 
     volumes = {}
-    volumes[f'jupyter-{username}'] = f'{home_dir}/work'
+    volumes[f'jupyter-{username}'] = home_dir
 
     # Docker-in-Docker volume for ML Workshop
     if not is_openclaw:

@@ -43,13 +43,14 @@ RUN echo "CacheDir: /data/apt-cacher-ng" >> /etc/apt-cacher-ng/acng.conf \
     && echo "LogDir: /var/log/apt-cacher-ng" >> /etc/apt-cacher-ng/acng.conf \
     && echo "Port: 3142" >> /etc/apt-cacher-ng/acng.conf \
     && echo "PassThroughPattern: .*" >> /etc/apt-cacher-ng/acng.conf \
-    && echo "Proxy: http://127.0.0.1:8899" >> /etc/apt-cacher-ng/acng.conf
+    && echo "Proxy: http://127.0.0.1:8899" >> /etc/apt-cacher-ng/acng.conf \
+    && echo "ExThreshold: 4" >> /etc/apt-cacher-ng/acng.conf
 
 # Supervisor config to run all services
-COPY proxy-supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY proxy/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Startup script
-COPY proxy-start.sh /usr/local/bin/start.sh
+COPY proxy/start.sh /usr/local/bin/start.sh
 RUN chmod +x /usr/local/bin/start.sh
 
 # Expose ports

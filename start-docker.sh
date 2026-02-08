@@ -94,11 +94,11 @@ else
 
     # Optional mounts for local development
     HUB_DEV_MOUNTS=""
-    if [ -f "$(pwd)/jupyterhub_config.py" ]; then
-        HUB_DEV_MOUNTS="$HUB_DEV_MOUNTS -v $(pwd)/jupyterhub_config.py:/etc/jupyterhub/jupyterhub_config.py:ro"
+    if [ -f "$(pwd)/hub/jupyterhub_config.py" ]; then
+        HUB_DEV_MOUNTS="$HUB_DEV_MOUNTS -v $(pwd)/hub/jupyterhub_config.py:/etc/jupyterhub/jupyterhub_config.py:ro"
     fi
-    if [ -d "$(pwd)/templates" ]; then
-        HUB_DEV_MOUNTS="$HUB_DEV_MOUNTS -v $(pwd)/templates:/etc/jupyterhub/templates:ro"
+    if [ -d "$(pwd)/hub/templates" ]; then
+        HUB_DEV_MOUNTS="$HUB_DEV_MOUNTS -v $(pwd)/hub/templates:/etc/jupyterhub/templates:ro"
     fi
 
     # Workshop content from host (contains lessons/, models/, datasets/)

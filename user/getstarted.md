@@ -7,7 +7,7 @@
 
 | 服务 | 地址 |
 |------|------|
-| VSCode (浏览器) | `http://VSCODE_SSH_HOST_PLACEHOLDER:28000/user/JUPYTERHUB_USER_PLACEHOLDER/vscode/?folder=/home/VSCODE_USER_PLACEHOLDER/work` |
+| VSCode (浏览器) | `http://VSCODE_SSH_HOST_PLACEHOLDER:28000/user/JUPYTERHUB_USER_PLACEHOLDER/vscode/?folder=/root/work` |
 | JupyterLab | `http://VSCODE_SSH_HOST_PLACEHOLDER:28000/user/JUPYTERHUB_USER_PLACEHOLDER/lab` |
 | JupyterHub 控制面板 | `http://VSCODE_SSH_HOST_PLACEHOLDER:28000/hub/home` |
 
@@ -63,12 +63,28 @@ Host ml-workshop
 | pip 缓存 | `http://ml-workshop-proxy:3141` |
 | apt 缓存 | `http://ml-workshop-proxy:3142` |
 
-环境变量已自动设置。如需为其他工具配置：
+环境变量已自动设置（`HTTP_PROXY`、`HTTPS_PROXY`、`NO_PROXY` 等）。如需手动配置：
 
 ```bash
 export HTTP_PROXY=http://ml-workshop-proxy:8899
 export HTTPS_PROXY=http://ml-workshop-proxy:8899
-export NO_PROXY=localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy
+export NO_PROXY=localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy,*.huawei.com
+```
+
+### VSCode 代理设置
+
+VSCode（浏览器版和 SSH 远程）已自动配置代理。如需手动修改，打开设置（`Ctrl+,`）搜索 `proxy`，设置：
+
+- `Http: Proxy` → `http://ml-workshop-proxy:8899`
+- `Http: Proxy Strict SSL` → 取消勾选
+
+或在 `settings.json` 中添加：
+
+```json
+{
+    "http.proxy": "http://ml-workshop-proxy:8899",
+    "http.proxyStrictSSL": false
+}
 ```
 
 ## 常见问题

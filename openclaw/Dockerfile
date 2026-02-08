@@ -35,9 +35,9 @@ RUN usermod -l jovyan -d /home/jovyan -m node \
     && echo "jovyan ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Copy startup script, config template, and getting-started template
-COPY start-openclaw.sh /usr/local/bin/start-openclaw.sh
-COPY openclaw.json /usr/local/share/openclaw.json
-COPY openclaw-getting-started.md /usr/local/share/openclaw-getting-started.md
+COPY openclaw/start.sh /usr/local/bin/start-openclaw.sh
+COPY openclaw/openclaw.json /usr/local/share/openclaw.json
+COPY openclaw/getting-started.md /usr/local/share/openclaw-getting-started.md
 RUN chmod +x /usr/local/bin/start-openclaw.sh
 
 WORKDIR /home/jovyan

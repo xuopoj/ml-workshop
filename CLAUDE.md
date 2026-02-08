@@ -15,13 +15,25 @@ Access: http://localhost:8000
 ## Architecture
 
 ```
-start-docker.sh         # Start containers (skip if image unchanged)
-jupyterhub_config.py    # Hub config with DockerSpawner + NativeAuthenticator
-Dockerfile.hub          # JupyterHub orchestrator (ml-workshop-hub)
-Dockerfile.proxy        # Cache server (ml-workshop-proxy)
-Dockerfile.user         # User container (ml-workshop-user-{username})
-Dockerfile.user.mac     # User container (Mac testing)
-templates/              # Custom JupyterHub templates
+start-docker.sh              # Start containers (skip if image unchanged)
+hub/                         # JupyterHub orchestrator (ml-workshop-hub)
+├── Dockerfile
+├── jupyterhub_config.py     # Hub config with DockerSpawner + NativeAuthenticator
+└── templates/               # Custom JupyterHub templates
+proxy/                       # Cache server (ml-workshop-proxy)
+├── Dockerfile
+├── start.sh
+└── supervisord.conf
+user/                        # User container (ml-workshop-user-{username})
+├── Dockerfile
+├── start-notebook.sh
+├── start-vscode.sh
+└── getstarted.md
+openclaw/                    # OpenClaw container (ml-workshop-openclaw)
+├── Dockerfile
+├── start.sh
+├── openclaw.json
+└── getting-started.md
 ```
 
 ## Container Names
@@ -42,7 +54,7 @@ Uses NativeAuthenticator with admin approval workflow:
 2. Admin approves at `/hub/authorize` (link in navbar for admins)
 3. Approved users can log in
 
-- Admins: defined in `jupyterhub_config.py` (`superuser` by default)
+- Admins: defined in `hub/jupyterhub_config.py` (`superuser` by default)
 - Admins get read-write access to workshop content
 
 ## Lessons

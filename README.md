@@ -5,21 +5,36 @@
 ## 快速开始
 
 ```bash
-./docker-run.sh                        # 构建镜像并启动服务
+./start-docker.sh                      # 启动所有容器
 docker logs ml-workshop-hub            # 查看 Hub 日志
+docker stop ml-workshop-hub ml-workshop-proxy && docker rm ml-workshop-hub ml-workshop-proxy  # 停止
 ```
 
-访问: http://localhost:8000
+访问: http://localhost:28000
+
 
 ## 架构
 
 ```
-docker-run.sh           # 启动脚本
-jupyterhub_config.py    # Hub 配置 (DockerSpawner + NativeAuthenticator)
-Dockerfile.hub          # JupyterHub 编排器
-Dockerfile.proxy        # 缓存代理服务器
-Dockerfile.user         # 用户容器镜像
-templates/              # 自定义 JupyterHub 模板
+start-docker.sh              # 启动脚本
+hub/                         # JupyterHub 编排器
+├── Dockerfile
+├── jupyterhub_config.py     # Hub 配置 (DockerSpawner + NativeAuthenticator)
+└── templates/               # 自定义 JupyterHub 模板
+proxy/                       # 缓存代理服务器
+├── Dockerfile
+├── start.sh
+└── supervisord.conf
+user/                        # 用户容器镜像
+├── Dockerfile
+├── start-notebook.sh
+├── start-vscode.sh
+└── getstarted.md
+openclaw/                    # OpenClaw 容器
+├── Dockerfile
+├── start.sh
+├── openclaw.json
+└── getting-started.md
 ```
 
 ### 容器
@@ -52,30 +67,49 @@ student-work/          # 学生作业目录
 
 默认管理员: `superuser`
 
-## 预构建镜像
+### SSH 连接 (VS Code Remote)
 
-镜像保存在 `images/` 目录：
+每个用户容器自动启动 SSH 服务，端口从 22222 开始递增分配。
 
-| 文件 | 大小 | 说明 |
-|------|------|------|
-| `ml-workshop-hub.tar.gz` | ~146MB | JupyterHub |
-| `ml-workshop-proxy.tar.gz` | ~111MB | 缓存代理 |
-| `ml-workshop-user.tar.gz` | ~5.5GB | 用户环境 (PyTorch + NPU) |
-
-### 导出镜像
-
-```bash
-docker save ml-workshop-hub:latest | gzip > images/ml-workshop-hub.tar.gz
-docker save ml-workshop-proxy:latest | gzip > images/ml-workshop-proxy.tar.gz
-docker save ml-workshop-user:latest | gzip > images/ml-workshop-user.tar.gz
+```
+Host: <VSCODE_SSH_HOST>
+Port: 22222+
+User: root
+Password: 首次启动自动生成（见容器日志），重启后自动恢复，可运行 passwd 修改
 ```
 
-### 导入镜像
+## 预构建镜像
+
+通过 [ModelScope](https://modelscope.cn) 分发预构建镜像。
+
+### 上传镜像
 
 ```bash
-gunzip -c images/ml-workshop-hub.tar.gz | docker load
-gunzip -c images/ml-workshop-proxy.tar.gz | docker load
-gunzip -c images/ml-workshop-user.tar.gz | docker load
+# 导出 + 上传
+docker save ml-workshop-hub:latest | gzip > ml-workshop-hub.tar.gz
+docker save ml-workshop-proxy:latest | gzip > ml-workshop-proxy.tar.gz
+docker save ml-workshop-user:latest | gzip > ml-workshop-user.tar.gz
+docker save ml-workshop-openclaw:latest | gzip > ml-workshop-openclaw.tar.gz
+
+modelscope upload xuopoj/ascend-factory ml-workshop-hub.tar.gz ml-workshop/ml-workshop-hub.tar.gz
+modelscope upload xuopoj/ascend-factory ml-workshop-proxy.tar.gz ml-workshop/ml-workshop-proxy.tar.gz
+modelscope upload xuopoj/ascend-factory ml-workshop-user.tar.gz ml-workshop/ml-workshop-user.tar.gz
+modelscope upload xuopoj/ascend-factory ml-workshop-openclaw.tar.gz ml-workshop/ml-workshop-openclaw.tar.gz
+```
+
+### 下载镜像
+
+```bash
+modelscope download xuopoj/ascend-factory ml-workshop/ml-workshop-hub.tar.gz --local_dir ./
+modelscope download xuopoj/ascend-factory ml-workshop/ml-workshop-proxy.tar.gz --local_dir ./
+modelscope download xuopoj/ascend-factory ml-workshop/ml-workshop-user.tar.gz --local_dir ./
+modelscope download xuopoj/ascend-factory ml-workshop/ml-workshop-openclaw.tar.gz --local_dir ./
+
+# 导入
+gunzip -c ml-workshop/ml-workshop-hub.tar.gz | docker load
+gunzip -c ml-workshop/ml-workshop-proxy.tar.gz | docker load
+gunzip -c ml-workshop/ml-workshop-user.tar.gz | docker load
+gunzip -c ml-workshop/ml-workshop-openclaw.tar.gz | docker load
 ```
 
 ## NPU 配置
@@ -94,8 +128,8 @@ ASCEND_VISIBLE_DEVICES=all ./docker-run.sh
 
 本地文件自动挂载到容器（如果存在）：
 
-- `jupyterhub_config.py` → Hub 配置
-- `templates/` → 自定义模板
+- `hub/jupyterhub_config.py` → Hub 配置
+- `hub/templates/` → 自定义模板
 - `workshop-content/` → 工作坊内容
 - `student-work/` → 学生作业
 
