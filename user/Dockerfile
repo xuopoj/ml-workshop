@@ -87,6 +87,9 @@ ENV HTTP_PROXY=http://ml-workshop-proxy:8899 \
     no_proxy=localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy,*.huawei.com
 RUN printf '#!/bin/sh\nexport HTTP_PROXY=http://ml-workshop-proxy:8899\nexport HTTPS_PROXY=http://ml-workshop-proxy:8899\nexport http_proxy=http://ml-workshop-proxy:8899\nexport https_proxy=http://ml-workshop-proxy:8899\nexport NO_PROXY=localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy,*.huawei.com\nexport no_proxy=localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy,*.huawei.com\n' \
     > /etc/profile.d/proxy.sh
+# Also write to /etc/environment for non-login SSH sessions (VS Code Remote)
+RUN printf 'HTTP_PROXY=http://ml-workshop-proxy:8899\nHTTPS_PROXY=http://ml-workshop-proxy:8899\nhttp_proxy=http://ml-workshop-proxy:8899\nhttps_proxy=http://ml-workshop-proxy:8899\nNO_PROXY=localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy,*.huawei.com\nno_proxy=localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy,*.huawei.com\n' \
+    >> /etc/environment
 
 # Configure pip to use local devpi cache (can be overridden by env vars)
 RUN mkdir -p /etc/pip \
