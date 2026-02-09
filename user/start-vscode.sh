@@ -61,6 +61,24 @@ fi
 cp "$SSH_KEYS_DIR"/ssh_host_* /etc/ssh/
 chmod 600 /etc/ssh/ssh_host_*_key
 
+# --- Export /etc/profile.d vars into /etc/environment for VS Code Remote SSH ---
+# VS Code Remote doesn't source profile.d, so resolve and write to /etc/environment
+if [ -f /etc/profile.d/ascend.sh ]; then
+    (
+        source /etc/profile.d/ascend.sh
+        for var in ASCEND_TOOLKIT_HOME ASCEND_AICPU_PATH ASCEND_OPP_PATH \
+                   TOOLCHAIN_HOME ASCEND_HOME_PATH ASCEND_DRIVER_HOME \
+                   LD_LIBRARY_PATH PYTHONPATH PATH; do
+            val="${!var}"
+            if [ -n "$val" ]; then
+                # Remove existing entry, then append resolved value
+                sed -i "/^${var}=/d" /etc/environment
+                echo "${var}=${val}" >> /etc/environment
+            fi
+        done
+    )
+fi
+
 # --- Configure and start SSH ---
 cat > /etc/ssh/sshd_config.d/vscode.conf <<EOF
 PasswordAuthentication yes

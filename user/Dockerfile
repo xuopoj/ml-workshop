@@ -87,13 +87,21 @@ ENV HTTP_PROXY=http://ml-workshop-proxy:8899 \
     no_proxy=localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy,*.huawei.com
 RUN printf '#!/bin/sh\nexport HTTP_PROXY=http://ml-workshop-proxy:8899\nexport HTTPS_PROXY=http://ml-workshop-proxy:8899\nexport http_proxy=http://ml-workshop-proxy:8899\nexport https_proxy=http://ml-workshop-proxy:8899\nexport NO_PROXY=localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy,*.huawei.com\nexport no_proxy=localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy,*.huawei.com\n' \
     > /etc/profile.d/proxy.sh
-# Also write to /etc/environment for non-login SSH sessions (VS Code Remote)
-RUN printf 'HTTP_PROXY=http://ml-workshop-proxy:8899\nHTTPS_PROXY=http://ml-workshop-proxy:8899\nhttp_proxy=http://ml-workshop-proxy:8899\nhttps_proxy=http://ml-workshop-proxy:8899\nNO_PROXY=localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy,*.huawei.com\nno_proxy=localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy,*.huawei.com\n' \
-    >> /etc/environment
+# Source /etc/profile.d/ scripts for all SSH sessions (including non-interactive)
+# VS Code Remote-SSH uses non-login shells that skip /etc/profile.d/
+RUN printf '#!/bin/sh\nfor f in /etc/profile.d/*.sh; do . "$f"; done\n' > /etc/ssh/sshrc \
+    && chmod +x /etc/ssh/sshrc
 
-# Configure pip to use local devpi cache (can be overridden by env vars)
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && ln -s /root/.local/bin/uv /usr/local/bin/uv \
+    && ln -s /root/.local/bin/uvx /usr/local/bin/uvx
+
+# Configure pip and uv to use local devpi cache (can be overridden by env vars)
 RUN mkdir -p /etc/pip \
-    && printf "[global]\nindex-url = http://ml-workshop-proxy:3141/root/pypi/+simple/\ntrusted-host = ml-workshop-proxy\n" > /etc/pip/pip.conf
+    && printf "[global]\nindex-url = http://ml-workshop-proxy:3141/root/pypi/+simple/\ntrusted-host = ml-workshop-proxy\ntimeout = 120\n" > /etc/pip/pip.conf
+ENV UV_INDEX_URL=http://ml-workshop-proxy:3141/root/pypi/+simple/ \
+    UV_HTTP_TIMEOUT=120
 
 # Configure apt to use apt-cacher-ng (can be overridden)
 RUN printf 'Acquire::http::Proxy "http://ml-workshop-proxy:3142";\n' > /etc/apt/apt.conf.d/00proxy
