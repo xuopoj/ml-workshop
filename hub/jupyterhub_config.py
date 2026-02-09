@@ -48,6 +48,7 @@ c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
 c.DockerSpawner.allowed_images = {
     'ML Workshop': os.environ.get('USER_IMAGE', 'ml-workshop-user:latest'),
     'OpenClaw Showcase': os.environ.get('OPENCLAW_IMAGE', 'ml-workshop-openclaw:latest'),
+    'HCIE Lab': os.environ.get('HCIE_IMAGE', 'ml-workshop-hcie:latest'),
 }
 c.DockerSpawner.image = os.environ.get('USER_IMAGE', 'ml-workshop-user:latest')
 
@@ -85,11 +86,8 @@ if ascend_devices:
     extra_host_config['devices'] = devices
     extra_host_config['binds'] = {
         '/usr/local/Ascend/driver': {'bind': '/usr/local/Ascend/driver', 'mode': 'ro'},
+        '/usr/local/sbin/npu-smi': {'bind': '/usr/local/sbin/npu-smi', 'mode': 'ro'},
     }
-    # Mount Ascend tools if they exist
-    for tool in ['/usr/local/sbin/npu-smi', '/usr/local/Ascend/driver/tool/hccn_tool']:
-        if os.path.exists(tool):
-            extra_host_config['binds'][tool] = {'bind': tool, 'mode': 'ro'}
 
 c.DockerSpawner.extra_host_config = extra_host_config
 
@@ -152,13 +150,20 @@ def pre_spawn_hook(spawner):
     username = spawner.user.name
     is_admin = spawner.user.admin
 
-    # Determine home directory based on selected image
+    # Determine container type based on selected image
     openclaw_image = os.environ.get('OPENCLAW_IMAGE', 'ml-workshop-openclaw:latest')
+    hcie_image = os.environ.get('HCIE_IMAGE', 'ml-workshop-hcie:latest')
     selected = spawner.user_options.get('image', '')
     resolved_image = spawner.allowed_images.get(selected, spawner.image)
     is_openclaw = (resolved_image == openclaw_image)
+    is_hcie = (resolved_image == hcie_image)
 
-    home_dir = '/home/jovyan' if is_openclaw else '/root/work'
+    if is_openclaw:
+        home_dir = '/home/jovyan'
+    elif is_hcie:
+        home_dir = '/root/share'
+    else:
+        home_dir = '/root/work'
     spawner.notebook_dir = home_dir
 
     # OpenClaw: expose gateway port directly on host
@@ -170,7 +175,7 @@ def pre_spawn_hook(spawner):
         spawner.environment['OPENCLAW_GATEWAY_HOST'] = os.environ.get('OPENCLAW_GATEWAY_HOST', 'localhost')
 
     # ML Workshop: expose SSH port for code-server / VSCode Remote
-    if not is_openclaw:
+    if not is_openclaw and not is_hcie:
         ssh_port = _get_port(username, SSH_PORT_FILE, SSH_PORT_BASE)
         spawner.extra_create_kwargs.setdefault('ports', {})['22/tcp'] = {}
         spawner.extra_host_config.setdefault('port_bindings', {})['22/tcp'] = ('0.0.0.0', ssh_port)
@@ -180,12 +185,12 @@ def pre_spawn_hook(spawner):
     volumes = {}
     volumes[f'jupyter-{username}'] = home_dir
 
-    # Docker-in-Docker volume for ML Workshop
-    if not is_openclaw:
+    # Docker-in-Docker volume for ML Workshop only
+    if not is_openclaw and not is_hcie:
         volumes[f'jupyter-{username}-docker'] = '/var/lib/docker'
 
-    # Workshop content (skip for OpenClaw)
-    if not is_openclaw:
+    # Workshop content (skip for OpenClaw and HCIE)
+    if not is_openclaw and not is_hcie:
         workshop_path = os.environ.get('WORKSHOP_CONTENT')
         if workshop_path:
             mode = 'rw' if is_admin else 'ro'
