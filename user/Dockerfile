@@ -92,10 +92,9 @@ RUN printf '#!/bin/sh\nexport HTTP_PROXY=http://ml-workshop-proxy:8899\nexport H
 RUN printf '#!/bin/sh\nfor f in /etc/profile.d/*.sh; do . "$f"; done\n' > /etc/ssh/sshrc \
     && chmod +x /etc/ssh/sshrc
 
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && ln -s /root/.local/bin/uv /usr/local/bin/uv \
-    && ln -s /root/.local/bin/uvx /usr/local/bin/uvx
+# Install uv (bypass proxy - astral.sh not reachable through ml-workshop-proxy at build time)
+RUN env -u http_proxy -u https_proxy -u HTTP_PROXY -u HTTPS_PROXY \
+    sh -c 'curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh'
 
 # Configure pip and uv to use local devpi cache (can be overridden by env vars)
 RUN mkdir -p /etc/pip \
