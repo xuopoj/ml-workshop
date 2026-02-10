@@ -14,6 +14,7 @@ PROXY_CONTAINER="ml-workshop-proxy"
 HUB_IMAGE="ml-workshop-hub:latest"
 USER_IMAGE="ml-workshop-user:latest"
 OPENCLAW_IMAGE="ml-workshop-openclaw:latest"
+HCIE_IMAGE="ml-workshop-hcie:latest"
 PROXY_IMAGE="ml-workshop-proxy:latest"
 
 # Check if container is running with the expected image
@@ -127,6 +128,7 @@ else
         ${STUDENT_WORK_MOUNT} \
         -e USER_IMAGE=${USER_IMAGE} \
         -e OPENCLAW_IMAGE=${OPENCLAW_IMAGE} \
+        -e HCIE_IMAGE=${HCIE_IMAGE} \
         -e OPENCLAW_GATEWAY_HOST=${OPENCLAW_GATEWAY_HOST:-100.102.191.233} \
         -e VSCODE_SSH_HOST=${VSCODE_SSH_HOST:-100.102.191.233} \
         -e TZ=Asia/Shanghai \

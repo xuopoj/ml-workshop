@@ -55,20 +55,82 @@ Host ml-workshop
 
 ## 代理配置
 
-远程环境已预配置以下代理：
+远程环境已预配置代理，大部分工具可以直接联网。以下是各工具的代理说明：
 
-| 服务 | 地址 |
-|------|------|
-| HTTP/HTTPS 代理 | `http://ml-workshop-proxy:8899` |
-| pip 缓存 | `http://ml-workshop-proxy:3141` |
-| apt 缓存 | `http://ml-workshop-proxy:3142` |
+### curl / wget / git
 
-环境变量已自动设置（`HTTP_PROXY`、`HTTPS_PROXY`、`NO_PROXY` 等）。如需手动配置：
+环境变量已自动设置，直接使用即可：
+
+```bash
+curl -fsSL https://example.com            # 自动走代理
+wget https://example.com/file.tar.gz      # 自动走代理
+git clone https://github.com/user/repo    # 自动走代理
+```
+
+如需手动设置（如环境变量丢失）：
 
 ```bash
 export HTTP_PROXY=http://ml-workshop-proxy:8899
 export HTTPS_PROXY=http://ml-workshop-proxy:8899
 export NO_PROXY=localhost,127.0.0.1,ml-workshop-hub,ml-workshop-proxy,*.huawei.com
+```
+
+### pip
+
+已配置使用本地 [devpi](http://ml-workshop-proxy:3141) 缓存索引，首次安装从 PyPI 拉取并缓存，后续安装直接从本地读取：
+
+```bash
+pip install numpy                         # 自动使用本地缓存索引
+```
+
+配置文件：`/etc/pip/pip.conf`
+
+```ini
+[global]
+index-url = http://ml-workshop-proxy:3141/root/pypi/+simple/
+trusted-host = ml-workshop-proxy
+```
+
+如需临时使用官方源：
+
+```bash
+pip install --index-url https://pypi.org/simple/ <package>
+```
+
+### uv
+
+同样配置使用本地 devpi 缓存索引：
+
+```bash
+uv pip install numpy                      # 自动使用本地缓存索引
+```
+
+通过环境变量配置：`UV_INDEX_URL=http://ml-workshop-proxy:3141/root/pypi/+simple/`
+
+如需临时使用官方源：
+
+```bash
+UV_INDEX_URL=https://pypi.org/simple/ uv pip install <package>
+```
+
+### apt
+
+已配置使用本地 [apt-cacher-ng](http://ml-workshop-proxy:3142) 代理仓库，所有 apt 请求自动经过缓存，相同包只下载一次：
+
+```bash
+apt-get update && apt-get install -y <package>   # 自动使用缓存代理
+```
+
+配置文件：`/etc/apt/apt.conf.d/00proxy`
+
+```
+Acquire::http::Proxy "http://ml-workshop-proxy:3142";
+```
+
+如需临时绕过缓存：
+
+```bash
+apt-get -o Acquire::http::Proxy=false update
 ```
 
 ### VSCode 代理设置

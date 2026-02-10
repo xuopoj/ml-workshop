@@ -35,6 +35,11 @@ openclaw/                    # OpenClaw 容器
 ├── start.sh
 ├── openclaw.json
 └── getting-started.md
+hcie/                        # HCIE Ascend NPU 容器
+├── Dockerfile
+├── entrypoint.sh
+├── requirements-env0.txt
+└── requirements-env1.txt
 ```
 
 ### 容器
@@ -44,6 +49,7 @@ openclaw/                    # OpenClaw 容器
 | `ml-workshop-hub` | JupyterHub 编排器 |
 | `ml-workshop-proxy` | 缓存代理 (whistle, devpi, apt-cacher-ng) |
 | `ml-workshop-user-{username}` | 用户 Jupyter 容器 (按需创建) |
+| `ml-workshop-hcie` | HCIE Ascend NPU 环境 (conda + env0/env1) |
 
 ### 目录结构
 
@@ -90,11 +96,13 @@ docker save ml-workshop-hub:latest | gzip > ml-workshop-hub.tar.gz
 docker save ml-workshop-proxy:latest | gzip > ml-workshop-proxy.tar.gz
 docker save ml-workshop-user:latest | gzip > ml-workshop-user.tar.gz
 docker save ml-workshop-openclaw:latest | gzip > ml-workshop-openclaw.tar.gz
+docker save ml-workshop-hcie:latest | gzip > ml-workshop-hcie.tar.gz
 
 modelscope upload xuopoj/ascend-factory ml-workshop-hub.tar.gz ml-workshop/ml-workshop-hub.tar.gz
 modelscope upload xuopoj/ascend-factory ml-workshop-proxy.tar.gz ml-workshop/ml-workshop-proxy.tar.gz
 modelscope upload xuopoj/ascend-factory ml-workshop-user.tar.gz ml-workshop/ml-workshop-user.tar.gz
 modelscope upload xuopoj/ascend-factory ml-workshop-openclaw.tar.gz ml-workshop/ml-workshop-openclaw.tar.gz
+modelscope upload xuopoj/ascend-factory ml-workshop-hcie.tar.gz ml-workshop/ml-workshop-hcie.tar.gz
 ```
 
 ### 下载镜像
@@ -104,12 +112,14 @@ modelscope download xuopoj/ascend-factory ml-workshop/ml-workshop-hub.tar.gz --l
 modelscope download xuopoj/ascend-factory ml-workshop/ml-workshop-proxy.tar.gz --local_dir ./
 modelscope download xuopoj/ascend-factory ml-workshop/ml-workshop-user.tar.gz --local_dir ./
 modelscope download xuopoj/ascend-factory ml-workshop/ml-workshop-openclaw.tar.gz --local_dir ./
+modelscope download xuopoj/ascend-factory ml-workshop/ml-workshop-hcie.tar.gz --local_dir ./
 
 # 导入
 gunzip -c ml-workshop/ml-workshop-hub.tar.gz | docker load
 gunzip -c ml-workshop/ml-workshop-proxy.tar.gz | docker load
 gunzip -c ml-workshop/ml-workshop-user.tar.gz | docker load
 gunzip -c ml-workshop/ml-workshop-openclaw.tar.gz | docker load
+gunzip -c ml-workshop/ml-workshop-hcie.tar.gz | docker load
 ```
 
 ## NPU 配置

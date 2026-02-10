@@ -34,6 +34,11 @@ openclaw/                    # OpenClaw container (ml-workshop-openclaw)
 ├── start.sh
 ├── openclaw.json
 └── getting-started.md
+hcie/                        # HCIE Ascend NPU container (ml-workshop-hcie)
+├── Dockerfile
+├── entrypoint.sh
+├── requirements-env0.txt
+└── requirements-env1.txt
 ```
 
 ## Container Names
@@ -41,6 +46,7 @@ openclaw/                    # OpenClaw container (ml-workshop-openclaw)
 - `ml-workshop-hub` - JupyterHub orchestrator
 - `ml-workshop-proxy` - Cache server (whistle, devpi, apt-cacher-ng)
 - `ml-workshop-user-{username}` - Per-user Jupyter containers
+- `ml-workshop-hcie` - HCIE Ascend NPU lab container
 
 ## Proxy Configuration
 
