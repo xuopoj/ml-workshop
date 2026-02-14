@@ -1,8 +1,8 @@
 # Core ML frameworks
 torch==2.2.0
-torch-npu @ file:///home/ma-user/pkg/torch_npu-2.2.0.post2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+torch-npu==2.2.0.post2
 mindspore @ https://ms-release.obs.cn-north-4.myhuaweicloud.com/2.3.0/MindSpore/unified/aarch64/mindspore-2.3.0-cp39-cp39-linux_aarch64.whl
-mindformers @ file:///home/ma-user/mindformers/output/mindformers-1.1.0-py3-none-any.whl
+mindformers==1.1.0
 
 # Training & fine-tuning
 deepspeed==0.14.4

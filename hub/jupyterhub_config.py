@@ -174,13 +174,16 @@ def pre_spawn_hook(spawner):
         spawner.environment['OPENCLAW_HOST_PORT'] = str(host_port)
         spawner.environment['OPENCLAW_GATEWAY_HOST'] = os.environ.get('OPENCLAW_GATEWAY_HOST', 'localhost')
 
-    # ML Workshop: expose SSH port for code-server / VSCode Remote
-    if not is_openclaw and not is_hcie:
+    # ML Workshop & HCIE: expose SSH port for VSCode Remote
+    if not is_openclaw:
         ssh_port = _get_port(username, SSH_PORT_FILE, SSH_PORT_BASE)
         spawner.extra_create_kwargs.setdefault('ports', {})['22/tcp'] = {}
         spawner.extra_host_config.setdefault('port_bindings', {})['22/tcp'] = ('0.0.0.0', ssh_port)
         spawner.environment['VSCODE_SSH_PORT'] = str(ssh_port)
         spawner.environment['VSCODE_SSH_HOST'] = os.environ.get('VSCODE_SSH_HOST', 'localhost')
+        if is_hcie:
+            spawner.environment['SSH_PORT'] = str(ssh_port)
+            spawner.environment['SSH_HOST'] = os.environ.get('VSCODE_SSH_HOST', 'localhost')
 
     volumes = {}
     volumes[f'jupyter-{username}'] = home_dir
